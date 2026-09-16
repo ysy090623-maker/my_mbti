@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MBTI로 포켓몬 찾기</title>
+<style>
+  :root{
+    --cream: #FFF8E7;
+    --cream-dark: #FDECC8;
+    --yellow: #FFD75E;
+    --yellow-deep: #FFB300;
+    --brown: #6B4A1F;
+    --brown-soft: #8A6A3A;
+    --white: #FFFFFF;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(180deg, var(--cream) 0%, var(--cream-dark) 100%);
+    font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+    color: var(--brown);
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px 60px;
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: 720px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  header h1 {
+    font-size: clamp(28px, 6vw, 40px);
+    margin: 0 0 8px;
+    color: var(--brown);
+  }
+
+  header p {
+    font-size: clamp(16px, 3.5vw, 20px);
+    color: var(--brown-soft);
+    margin: 0;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  @media (max-width: 480px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .mbti-btn {
+    background: var(--white);
+    border: 3px solid var(--yellow);
+    border-radius: 16px;
+    padding: 18px 8px;
+    font-size: clamp(18px, 4vw, 22px);
+    font-weight: 800;
+    color: var(--brown);
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 3px 0 var(--yellow-deep);
+  }
+
+  .mbti-btn:hover {
+    background: var(--yellow);
+    transform: translateY(-2px);
+  }
+
+  .mbti-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 0 var(--yellow-deep);
+  }
+
+  .result-card {
+    display: none;
+    background: var(--white);
+    border-radius: 24px;
+    padding: 32px 24px;
+    margin-top: 8px;
+    text-align: center;
+    box-shadow: 0 8px 0 var(--yellow-deep), 0 10px 24px rgba(0,0,0,0.08);
+    border: 4px solid var(--yellow);
+  }
+
+  .result-card.show {
+    display: block;
+    animation: pop 0.35s ease;
+  }
+
+  @keyframes pop {
+    0% { transform: scale(0.9); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .result-mbti-tag {
+    display: inline-block;
+    background: var(--yellow);
+    color: var(--brown);
+    font-weight: 800;
+    font-size: 18px;
+    padding: 6px 18px;
+    border-radius: 999px;
+    margin-bottom: 12px;
+  }
+
+  .pokemon-emoji {
+    font-size: clamp(70px, 20vw, 100px);
+    line-height: 1;
+    margin: 8px 0 4px;
+  }
+
+  .pokemon-name {
+    font-size: clamp(26px, 6vw, 34px);
+    font-weight: 900;
+    margin: 4px 0 16px;
+    color: var(--brown);
+  }
+
+  .reason-box {
+    background: var(--cream);
+    border-radius: 16px;
+    padding: 18px 20px;
+    text-align: left;
+    font-size: clamp(16px, 3.8vw, 19px);
+    line-height: 1.6;
+    color: var(--brown-soft);
+    margin-bottom: 20px;
+  }
+
+  .compat-box {
+    background: var(--cream-dark);
+    border-radius: 16px;
+    padding: 16px 20px;
+    text-align: left;
+    font-size: clamp(15px, 3.5vw, 18px);
+    line-height: 1.6;
+    color: var(--brown);
+    margin-bottom: 24px;
+  }
+
+  .compat-box b {
+    color: var(--yellow-deep);
+  }
+
+  .retry-btn {
+    background: var(--yellow-deep);
+    color: var(--white);
+    border: none;
+    border-radius: 999px;
+    padding: 14px 32px;
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #C97F00;
+    transition: transform 0.15s ease;
+  }
+
+  .retry-btn:hover {
+    transform: translateY(-2px);
+  }
+
+  .retry-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #C97F00;
+  }
+
+  .hint {
+    text-align: center;
+    margin-top: 20px;
+    color: var(--brown-soft);
+    font-size: 15px;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>🍯 MBTI로 포켓몬 찾기 🍯</h1>
+    <p>내 MBTI 유형을 골라보세요!</p>
+  </header>
+
+  <div class="grid" id="mbtiGrid"></div>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-mbti-tag" id="resultMbti"></div>
+    <div class="pokemon-emoji" id="resultEmoji"></div>
+    <div class="pokemon-name" id="resultName"></div>
+    <div class="reason-box" id="resultReason"></div>
+    <div class="compat-box" id="resultCompat"></div>
+    <button class="retry-btn" id="retryBtn">🔄 다시 고르기</button>
+  </div>
+
+  <p class="hint" id="hintText">위에서 MBTI 유형 버튼을 눌러보세요 👆</p>
+</div>
+
+<script>
+  const data = {
+    "INTJ": {
+      name: "메타몽",
+      emoji: "🟣",
+      reason: "혼자만의 계획을 세우고 상황에 맞게 스스로를 바꿔가며 목표를 이루는 전략가예요. 겉으로는 조용하지만 속에는 확실한 그림이 있어요.",
+      compat: "ENTP"
+    },
+    "INTP": {
+      name: "고오스",
+      emoji: "👻",
+      reason: "호기심 많고 논리적인 실험을 좋아하는 몽상가예요. 남들이 이해 못해도 자기만의 이론을 파고드는 걸 즐겨요.",
+      compat: "ENTJ"
+    },
+    "ENTJ": {
+      name: "리자몽",
+      emoji: "🔥",
+      reason: "타고난 리더십으로 무리를 이끌고 목표를 향해 거침없이 나아가는 타입이에요. 자신감 넘치고 강한 카리스마를 뿜어요.",
+      compat: "INTP"
+    },
+    "ENTP": {
+      name: "치렁",
+      emoji: "🐍",
+      reason: "새로운 아이디어와 도전을 즐기고 재치 있는 말솜씨로 상대를 놀라게 해요. 틀에 박힌 걸 싫어하고 변화를 좋아해요.",
+      compat: "INTJ"
+    },
+    "INFJ": {
+      name: "라프라스",
+      emoji: "🌊",
+      reason: "따뜻한 마음으로 다른 이를 이해하고 조용히 돕는 이상주의자예요. 깊은 통찰력으로 사람들의 마음을 잘 읽어요.",
+      compat: "ENFP"
+    },
+    "INFP": {
+      name: "이브이",
+      emoji: "🦊",
+      reason: "순수하고 감성적이며 자신만의 가치관을 소중히 여기는 몽상가예요. 다양한 가능성을 품고 있어 어떤 모습으로도 성장할 수 있어요.",
+      compat: "ENFJ"
+    },
+    "ENFJ": {
+      name: "픽시",
+      emoji: "🌸",
+      reason: "사람들을 챙기고 이끌며 주변에 온기를 나눠주는 다정한 리더예요. 다른 사람의 성장을 돕는 데서 기쁨을 느껴요.",
+      compat: "INFP"
+    },
+    "ENFP": {
+      name: "피카츄",
+      emoji: "⚡",
+      reason: "밝고 에너지 넘치는 성격으로 어디서든 분위기를 살리는 인기쟁이예요. 새로운 사람과 경험을 만나는 걸 정말 좋아해요.",
+      compat: "INFJ"
+    },
+    "ISTJ": {
+      name: "롱스톤",
+      emoji: "🗿",
+      reason: "묵묵하고 성실하게 맡은 일을 끝까지 해내는 믿음직한 타입이에요. 원칙과 질서를 중요하게 생각해요.",
+      compat: "ESFP"
+    },
+    "ISFJ": {
+      name: "라이츄",
+      emoji: "🐹",
+      reason: "다정하고 세심하게 주변을 챙기는 헌신적인 보호자예요. 조용하지만 필요할 때 확실한 힘을 보여줘요.",
+      compat: "ESTP"
+    },
+    "ESTJ": {
+      name: "딱구리",
+      emoji: "🥊",
+      reason: "체계적으로 조직을 이끌고 규칙을 지키며 실행력을 발휘하는 관리자 타입이에요. 목표 달성을 위해 성실하게 움직여요.",
+      compat: "ISFP"
+    },
+    "ESFJ": {
+      name: "푸린",
+      emoji: "🎵",
+      reason: "사람들과 어울리는 걸 좋아하고 분위기를 부드럽게 만드는 사교적인 타입이에요. 주변 사람들을 잘 챙기고 배려해요.",
+      compat: "ISTP"
+    },
+    "ISTP": {
+      name: "뮤츠",
+      emoji: "🧬",
+      reason: "냉철하고 분석적이며 필요할 때 놀라운 실력을 발휘하는 조용한 해결사예요. 감정보다 논리로 움직이는 편이에요.",
+      compat: "ESFJ"
+    },
+    "ISFP": {
+      name: "체리버",
+      emoji: "🍒",
+      reason: "자유롭고 예술적인 감성을 지닌 평화주의자예요. 자기만의 스타일로 세상을 조용히 즐기는 걸 좋아해요.",
+      compat: "ESTJ"
+    },
+    "ESTP": {
+      name: "부스터",
+      emoji: "🔥",
+      reason: "행동파에 모험을 즐기는 열정적인 타입이에요. 생각보다 몸이 먼저 움직이고, 순간의 짜릿함을 사랑해요.",
+      compat: "ISFJ"
+    },
+    "ESFP": {
+      name: "번치코",
+      emoji: "🎤",
+      reason: "무대 위 주인공처럼 사람들의 시선을 즐기는 흥 많은 타입이에요. 즉흥적이고 밝은 에너지로 주변을 즐겁게 만들어요.",
+      compat: "ISTJ"
+    }
+  };
+
+  const grid = document.getElementById('mbtiGrid');
+  const resultCard = document.getElementById('resultCard');
+  const hintText = document.getElementById('hintText');
+
+  Object.keys(data).forEach(type => {
+    const btn = document.createElement('button');
+    btn.className = 'mbti-btn';
+    btn.textContent = type;
+    btn.addEventListener('click', () => showResult(type));
+    grid.appendChild(btn);
+  });
+
+  function showResult(type) {
+    const info = data[type];
+    document.getElementById('resultMbti').textContent = type;
+    document.getElementById('resultEmoji').textContent = info.emoji;
+    document.getElementById('resultName').textContent = info.name;
+    document.getElementById('resultReason').textContent = info.reason;
+    document.getElementById('resultCompat').innerHTML =
+      '💛 궁합이 좋은 유형: <b>' + info.compat + '</b> (' + data[info.compat].name + ')와 특히 잘 어울려요!';
+
+    resultCard.classList.add('show');
+    hintText.style.display = 'none';
+    resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  document.getElementById('retryBtn').addEventListener('click', () => {
+    resultCard.classList.remove('show');
+    hintText.style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+</script>
+
+</body>
+</html>
